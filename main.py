@@ -1,6 +1,7 @@
 from PIL import Image
 import argparse
 from pathlib import Path
+import config
 
 def get_pixel_colors(image_path):
     image = Image.open(image_path)
@@ -16,36 +17,15 @@ def get_pixel_colors(image_path):
 
 
 def replace_color(pixel_colors, width, height):
-    color_map = {
-        (255, 255, 255, 255): (0, 0, 0, 255),  # White (transparent)
-        (204, 162, 103, 255): (32, 32, 32, 255),  # Plains
-        (254, 1, 0, 255): (46, 46, 46, 255),  # Farmlands
-        (90, 51, 13, 255): (86, 86, 86, 255),  # Hills
-        (101, 100, 101, 255): (150, 150, 150, 255),  # Mountains
-        (254, 228, 0, 255): (34, 34, 34, 255),  # Desert
-        (22, 19, 39, 255): (130, 130, 130, 255),  # Desert Mountain
-        (154, 143, 205, 255): (40, 40, 40, 255),  # Oasis
-        (11, 61, 35, 255): (46, 46, 46, 255),  # Jungle
-        (71, 179, 44, 255): (54, 54, 54, 255),  # Forest
-        (46, 152, 88, 255): (15, 15, 15, 255),  # Taiga
-        (76, 153, 153, 255): (11, 11, 11, 255),  # Wetlands
-        (200, 101, 24, 255): (30, 30, 30, 255),  # Steppe
-        (54, 31, 152, 255): (7, 7, 7, 255),  # Floodplains
-        (221, 44, 120, 255): (40, 40, 40, 255),  # Drylands
-        (36, 37, 37, 255): (20, 20, 20, 255),  # Impassable Land
-        (68, 106, 162, 255): (5, 5, 5, 255),  # Traversable Sea
-        (51, 67, 85, 255): (2, 2, 2, 255),  # Impassable Sea
-        (142, 233, 254, 255): (7, 7, 7, 255)  # Rivers
-    }
-
     replaced_colors = []
     for i, pixel in enumerate(pixel_colors):
+        pixelNoAlpha = tuple((pixel[0], pixel[1], pixel[2]))
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
                 avg_color = get_average_color(pixel_colors, i, width, height)
                 replaced_colors.append(avg_color)
-            elif pixel in color_map:
-                replaced_colors.append(color_map[pixel])
+            elif pixelNoAlpha in config.color_conversion_map:
+                replaced_colors.append(config.color_conversion_map[pixelNoAlpha])
             else:
                 replaced_colors.append(pixel)
         else:
