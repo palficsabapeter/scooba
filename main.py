@@ -1,5 +1,6 @@
 from PIL import Image
-
+import argparse
+from pathlib import Path
 
 def get_pixel_colors(image_path):
     image = Image.open(image_path)
@@ -77,20 +78,28 @@ def get_average_color(pixel_colors, index, width, height):
 
     return avg_r, avg_g, avg_b, avg_a
 
-
-
-
-
 def compile_image(pixel_colors, width, height, output_path):
     print("Compiling image...")
     new_image = Image.new("RGBA", (width, height))
     new_image.putdata(pixel_colors)
-    new_image.save(output_path + ".png")
-    print(f"Image compiled and saved successfully at {output_path}.png")
+    new_image.save(output_path)
+    print(f"Image compiled and saved successfully at {output_path}")
 
+def resolve_args():
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("src", help="The path of the source file")
+    parser.add_argument("dest", help="The path of the generated file")
+    args = vars(parser.parse_args())
 
-input_image_path = "images/tiroshmap_1.png"
-output_image_path = "C:\\Users\\ERR0R\\PycharmProjects\\pythonProject\\images"
-pixel_colors, width, height = get_pixel_colors(input_image_path)
-colors_replaced = replace_color(pixel_colors, width, height)
-compile_image(colors_replaced, width, height, output_image_path)
+    src = args["src"]
+    dest = Path(args["dest"]).resolve()
+    if not dest.parent.exists():
+        dest.parent.mkdir(parents=True)
+    return tuple((src, dest))
+
+if __name__ == "__main__":
+    input_image_path, output_image_path = resolve_args()
+
+    pixel_colors, width, height = get_pixel_colors(input_image_path)
+    colors_replaced = replace_color(pixel_colors, width, height)
+    compile_image(colors_replaced, width, height, output_image_path)
