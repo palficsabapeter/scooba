@@ -22,7 +22,7 @@ def cast_to_16_bit(eightBitColor):
     return int((eightBitColor/256)*65536)
 
 def mix_in_noise(luminosity):
-    rand_base = 1.125 - (random.randint(0, 25) / 100)
+    rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
     return luminosity * rand_base
 
 def replace_color(pixel_colors, width):
