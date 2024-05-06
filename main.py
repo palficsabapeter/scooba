@@ -1,3 +1,5 @@
+import imageio
+import numpy
 from PIL import Image
 import argparse
 from pathlib import Path
@@ -15,6 +17,8 @@ def get_pixel_colors(image_path):
             pixel_colors.append(pixel_color)
     return pixel_colors, width, height
 
+def cast_to_16_bit(eightBitColor):
+    return int((eightBitColor/256)*65536)
 
 def replace_color(pixel_colors, width):
     replaced_colors = []
@@ -22,19 +26,19 @@ def replace_color(pixel_colors, width):
         pixelNoAlpha = tuple(pixel[:3])
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
-                avg_color = get_average_color(pixel_colors, i, width)
-                replaced_colors.append(avg_color)
+                avg_l = get_average_color(pixel_colors, i, width)
+                replaced_colors.append(cast_to_16_bit(avg_l))
             elif pixelNoAlpha in config.color_conversion_map:
-                replaced_colors.append(config.color_conversion_map[pixelNoAlpha])
+                replaced_colors.append(cast_to_16_bit(config.color_conversion_map[pixelNoAlpha][0]))
             else:
-                replaced_colors.append(pixel)
+                replaced_colors.append(cast_to_16_bit(pixel[0]))
         else:
             print(f"Invalid pixel format: {pixel}")
     return replaced_colors
 
 
 def get_average_color(pixel_colors, index, width):
-    total_r = total_g = total_b = 0
+    total_l = 0
     count = 0
 
     for y_offset in range(-1, 2):
@@ -48,22 +52,17 @@ def get_average_color(pixel_colors, index, width):
                     continue
                 if color[:3] in config.color_conversion_map: # if found in conversion map, use the converted color
                     conversion_color = config.color_conversion_map[color[:3]]
-                    total_r += conversion_color[0]
-                    total_g += conversion_color[1]
-                    total_b += conversion_color[2]
+                    total_l += conversion_color[0]
                     count += 1
 
-    avg_r = total_r // count if count > 0 else 0
-    avg_g = total_g // count if count > 0 else 0
-    avg_b = total_b // count if count > 0 else 0
+    avg_l = total_l // count if count > 0 else 0
 
-    return avg_r, avg_g, avg_b, 255
+    return avg_l
 
 def compile_image(pixel_colors, width, height, output_path):
     print("Compiling image...")
-    new_image = Image.new("RGBA", (width, height))
-    new_image.putdata(pixel_colors)
-    new_image.save(output_path)
+    im = numpy.array(pixel_colors, numpy.uint16).reshape((height, width))
+    imageio.imwrite(output_path, im)
     print(f"Image compiled and saved successfully at {output_path}")
 
 def resolve_args():
