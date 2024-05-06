@@ -110,31 +110,36 @@ def get_average_color(pixel_colors, index, width):
     return avg_l
 
 
-def compile_image(pixel_colors, width, height, output_path):
+def compile_image(pixel_colors, width, height, output_file_path):
     print("Compiling image...")
     im = numpy.array(pixel_colors, numpy.uint16).reshape((height, width))
-    imageio.imwrite(output_path, im)
-    print(f"Image compiled and saved successfully at {output_path}")
+    imageio.imwrite(output_file_path, im)
+    print(f"Image compiled and saved successfully at {output_file_path}")
 
 
 def resolve_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("src", help="The path of the source file")
-    parser.add_argument("dest", help="The path of the generated file")
+    parser.add_argument("-s", "--seed", required=False, default=0, help="The seed used during Perlin noise generation")
+    parser.add_argument("-p", "--save_perlin_noise_file",
+                        required=False, default=False,
+                        help="This flag indicates whether the app should save the generated Perlin noise map as a file.")
     args = vars(parser.parse_args())
 
     src = args["src"]
-    dest = Path(args["dest"]).resolve()
-    if not dest.parent.exists():
-        dest.parent.mkdir(parents=True)
-    return tuple((src, dest))
+    seed = int(args["seed"])
+    save_perlin_noise_file = args["save_perlin_noise_file"]
+    return src, seed, save_perlin_noise_file
 
 
 if __name__ == "__main__":
-    input_image_path, output_image_path = resolve_args()
+    input_image_path, seed, save_perlin_noise_file = resolve_args()
+    output_file_path = Path("./output").resolve() / f"heightmap_{seed}.png"
+    if not output_file_path.parent.exists():
+        output_file_path.parent.mkdir(parents=True)
 
     pixel_colors, width, height = get_pixel_colors(input_image_path)
-    pn = ng.generate_perlin_noise(width, height)
+    pn = ng.generate_perlin_noise(width, height, seed, save_perlin_noise_file)
 
     colors_replaced = replace_color(pixel_colors, width, pn)
-    compile_image(colors_replaced, width, height, output_image_path)
+    compile_image(colors_replaced, width, height, output_file_path)
