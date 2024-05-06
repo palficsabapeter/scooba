@@ -2,10 +2,10 @@ color_conversion_map = {
     (255, 255, 255): 0,  # White (transparent)
     (204, 163, 102): 20,  # Plains
     (255, 0, 0): 20,  # Farmlands
-    (90, 50, 12): 26,  # Hills
-    (100, 100, 100): 31,  # Mountains
+    (90, 50, 12): 34,  # Hills
+    (100, 100, 100): 40,  # Mountainsx
     (255, 229, 0): 20,  # Desert
-    (23, 19, 38): 31,  # Desert Mountain
+    (23, 19, 38): 40,  # Desert Mountain
     (155, 143, 204): 19,  # Oasis
     (10, 60, 35): 21,  # Jungle
     (71, 178, 45): 21,  # Forest
@@ -14,7 +14,7 @@ color_conversion_map = {
     (200, 100, 25): 20,  # Steppe
     (55, 31, 153): 18,  # Floodplains
     (220, 45, 120): 20,  # Drylands
-    (36, 36, 36): 34,  # Impassable Mountain
+    (36, 36, 36): 45,  # Impassable Mountain
     (255, 180, 30): 20, # Impassable Desert
     (68, 107, 163): 5,  # Traversable Sea
     (51, 67, 85): 2,  # Impassable Sea

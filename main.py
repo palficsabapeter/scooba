@@ -6,6 +6,9 @@ from pathlib import Path
 import config
 import random
 
+import noise_generator as ng
+
+
 def get_pixel_colors(image_path):
     image = Image.open(image_path)
     width, height = image.size
@@ -21,22 +24,76 @@ def get_pixel_colors(image_path):
 def cast_to_16_bit(eightBitColor):
     return int((eightBitColor/256)*65536)
 
-def mix_in_noise(luminosity):
+def mix_in_noise2(luminosity, perlin):
     rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
-    return luminosity * rand_base
+    p_noise = 12 * perlin
+    res = (luminosity * rand_base) + p_noise
+    if luminosity - res > 6:
+        print(f"Way below: P noise: {p_noise}, l: {luminosity}, res: {res}")
 
-def replace_color(pixel_colors, width):
+    if res - luminosity > 6:
+        print(f"Way above: P noise: {p_noise}, l: {luminosity}, res: {res}")
+
+    if luminosity >= 18 and res < 18: # don't turn flatlands into water
+        res = 17
+    elif luminosity < 26 and res > 26: # neither turn flatlands into high hills
+        res = 27
+    elif luminosity >= 26 and res < 26: # neither turn hills into flatlands
+        res = 25
+    elif luminosity < 31 and res > 31: # neither turn hills into mountains
+        res = 32
+    elif luminosity >= 31 and res < 31: # neither turn mountains into hills
+        res = 30
+    elif res > 34: # neither turn high mountains into Mars craters
+        res = 35
+
+    return int(res)
+
+def mix_in_noise(luminosity, perlin):
+    if luminosity <= 7: # keep water as is
+        return luminosity
+
+    rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
+    p_noise = 12 * perlin
+    res = (luminosity * rand_base) + p_noise
+
+    if (p_noise > 9 or p_noise < -9) and luminosity >= 18:
+        print(f"Mess: P noise: {p_noise}, l: {luminosity}, res: {res}")
+
+    if luminosity >= 18 and res < 18: # don't turn flatlands into water
+        res = 18
+    elif luminosity < 34 and res > 34: # neither turn flatlands into high hills
+        res = 35
+    elif luminosity >= 34 and res < 34: # neither turn hills into flatlands
+        res = 33
+    elif luminosity < 40 and res > 40: # neither turn hills into mountains
+        res = 41
+    elif luminosity >= 40 and res < 40: # neither turn mountains into hills
+        res = 39
+    elif res > 45: # neither turn high mountains into Mars craters
+        res = 46
+
+    return int(res)
+
+def replace_color(pixel_colors, width, perlin_noise):
+    print("Converting colors to luminosity")
+    pn_arr = numpy.asarray(perlin_noise)
     replaced_colors = []
+
     for i, pixel in enumerate(pixel_colors):
         pixelNoAlpha = tuple(pixel[:3])
+        x = int(i / width)
+        y = int(i % width)
+        pn = pn_arr[x][y]
+
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
                 avg_l = get_average_color(pixel_colors, i, width)
-                avg_l = mix_in_noise(avg_l)
+                avg_l = mix_in_noise(avg_l, pn)
                 replaced_colors.append(cast_to_16_bit(avg_l))
             elif pixelNoAlpha in config.color_conversion_map:
                 l = config.color_conversion_map[pixelNoAlpha]
-                l = mix_in_noise(l)
+                l = mix_in_noise(l, pn)
                 replaced_colors.append(cast_to_16_bit(l))
             else:
                 replaced_colors.append(cast_to_16_bit(pixel[0]))
@@ -89,5 +146,7 @@ if __name__ == "__main__":
     input_image_path, output_image_path = resolve_args()
 
     pixel_colors, width, height = get_pixel_colors(input_image_path)
-    colors_replaced = replace_color(pixel_colors, width)
+    pn = ng.generate_perlin_noise(width, height)
+
+    colors_replaced = replace_color(pixel_colors, width, pn)
     compile_image(colors_replaced, width, height, output_image_path)
