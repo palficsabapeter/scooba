@@ -4,6 +4,7 @@ from PIL import Image
 import argparse
 from pathlib import Path
 import config
+import random
 
 def get_pixel_colors(image_path):
     image = Image.open(image_path)
@@ -20,6 +21,10 @@ def get_pixel_colors(image_path):
 def cast_to_16_bit(eightBitColor):
     return int((eightBitColor/256)*65536)
 
+def mix_in_noise(luminosity):
+    rand_base = 1.125 - (random.randint(0, 25) / 100)
+    return luminosity * rand_base
+
 def replace_color(pixel_colors, width):
     replaced_colors = []
     for i, pixel in enumerate(pixel_colors):
@@ -27,9 +32,12 @@ def replace_color(pixel_colors, width):
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
                 avg_l = get_average_color(pixel_colors, i, width)
+                avg_l = mix_in_noise(avg_l)
                 replaced_colors.append(cast_to_16_bit(avg_l))
             elif pixelNoAlpha in config.color_conversion_map:
-                replaced_colors.append(cast_to_16_bit(config.color_conversion_map[pixelNoAlpha]))
+                l = config.color_conversion_map[pixelNoAlpha]
+                l = mix_in_noise(l)
+                replaced_colors.append(cast_to_16_bit(l))
             else:
                 replaced_colors.append(cast_to_16_bit(pixel[0]))
         else:
