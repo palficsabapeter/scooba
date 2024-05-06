@@ -29,7 +29,7 @@ def replace_color(pixel_colors, width):
                 avg_l = get_average_color(pixel_colors, i, width)
                 replaced_colors.append(cast_to_16_bit(avg_l))
             elif pixelNoAlpha in config.color_conversion_map:
-                replaced_colors.append(cast_to_16_bit(config.color_conversion_map[pixelNoAlpha][0]))
+                replaced_colors.append(cast_to_16_bit(config.color_conversion_map[pixelNoAlpha]))
             else:
                 replaced_colors.append(cast_to_16_bit(pixel[0]))
         else:
@@ -51,8 +51,8 @@ def get_average_color(pixel_colors, index, width):
                 if color[0] == color[1] == color[2] == 0: # if black, do not count this in  average
                     continue
                 if color[:3] in config.color_conversion_map: # if found in conversion map, use the converted color
-                    conversion_color = config.color_conversion_map[color[:3]]
-                    total_l += conversion_color[0]
+                    conversion_luminosity = config.color_conversion_map[color[:3]]
+                    total_l += conversion_luminosity
                     count += 1
 
     avg_l = total_l // count if count > 0 else 0
