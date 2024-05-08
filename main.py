@@ -28,7 +28,7 @@ def cast_to_16_bit(eight_bit_color):
     return int((eight_bit_color / 256) * 65536)
 
 
-def mix_in_noise(luminosity, perlin_noises):
+def mix_in_noise(luminosity, perlin_noise):
     floodplain_height = config.find_luminosity_by_name("floodplain")
     if luminosity <= floodplain_height:  # keep water and lowland as is
         return luminosity
@@ -45,15 +45,12 @@ def mix_in_noise(luminosity, perlin_noises):
     plain_upward_tolerance = hill_height - plain_height
 
     p_noise = 0
-    for i, pn in enumerate(perlin_noises):
-        if mountain_height <= luminosity:
-            p_noise += mountain_upward_tolerance * pn
-        elif hill_height <= luminosity < mountain_height:
-            p_noise += hill_upward_tolerance * pn
-        elif floodplain_height <= luminosity < hill_height:
-            p_noise += plain_upward_tolerance * pn
-
-    p_noise /= len(perlin_noises)
+    if mountain_height <= luminosity:
+        p_noise = mountain_upward_tolerance * perlin_noise
+    elif hill_height <= luminosity < mountain_height:
+        p_noise = hill_upward_tolerance * perlin_noise
+    elif floodplain_height <= luminosity < hill_height:
+        p_noise = plain_upward_tolerance * perlin_noise
 
     rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
     res = (luminosity * rand_base) + p_noise
@@ -90,7 +87,7 @@ def mix_in_noise(luminosity, perlin_noises):
     return int(res)
 
 
-def replace_color(pixel_colors, width, perlin_noises):
+def replace_color(pixel_colors, width, convoluted_perlin_noise):
     print("Converting colors to luminosity")
 
     replaced_colors = []
@@ -98,23 +95,21 @@ def replace_color(pixel_colors, width, perlin_noises):
     iteration_length = len(pixel_colors)
 
     for i, pixel in enumerate(pixel_colors):
-        pb.print_progress_bar(i, iteration_length, prefix='Progress:', suffix='Complete', length=50)
+        pb.print_progress_bar(i, iteration_length, prefix='Replacing pixel colors:', suffix='Complete', length=50)
         pixel_no_alpha = tuple(pixel[:3])
 
-        pns_at_index = []
-        for _, pn in enumerate(perlin_noises):
-            x = int(i / width)
-            y = int(i % width)
-            pns_at_index.append(pn[x, y])
+        x = int(i / width)
+        y = int(i % width)
+        perlin_noise_at_index = convoluted_perlin_noise[x, y]
 
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
                 avg_l = get_average_color(pixel_colors, i, width)
-                avg_l = mix_in_noise(avg_l, pns_at_index)
+                avg_l = mix_in_noise(avg_l, perlin_noise_at_index)
                 replaced_colors.append(cast_to_16_bit(avg_l))
             elif config.find_luminosity_by_rgb(pixel_no_alpha):
                 l = config.find_luminosity_by_rgb(pixel_no_alpha)
-                l = mix_in_noise(l, pns_at_index)
+                l = mix_in_noise(l, perlin_noise_at_index)
                 replaced_colors.append(cast_to_16_bit(l))
             else:
                 replaced_colors.append(cast_to_16_bit(pixel[0]))
@@ -176,6 +171,7 @@ if __name__ == "__main__":
         output_file_path.parent.mkdir(parents=True)
 
     pixel_colors, width, height = get_pixel_colors(input_image_path)
+    print("Generating noise maps")
     pn_arr = ng.generate_perlin_noises(width, height, num_of_perlin_noises, save_perlin_noise_file)
 
     colors_replaced = replace_color(pixel_colors, width, pn_arr)
