@@ -28,34 +28,60 @@ def cast_to_16_bit(eight_bit_color):
 
 
 def mix_in_noise(luminosity, perlin):
-    if luminosity <= 7:  # keep water as is
+    floodplain_height = config.find_luminosity_by_name("floodplain")
+    if luminosity <= floodplain_height:  # keep water and lowland as is
         return luminosity
+    
+    impassable_mountain_height = config.find_luminosity_by_name("impassable mountain")
+    mountain_height = config.find_luminosity_by_name("mountain")
+    hill_height = config.find_luminosity_by_name("hill")
+    plain_height = config.find_luminosity_by_name("plain")
+
+    mountain_upward_tolerance = impassable_mountain_height - mountain_height
+    mountain_downward_tolerance = mountain_height - hill_height
+    hill_upward_tolerance = mountain_height - hill_height
+    hill_downward_tolerance = hill_height - config.find_luminosity_by_name("floodplain")
+    plain_upward_tolerance = hill_height - plain_height
+
+    p_noise = 0
+    if mountain_height <= luminosity:
+        p_noise = mountain_upward_tolerance * perlin
+    elif hill_height <= luminosity < mountain_height:
+        p_noise = hill_upward_tolerance * perlin
+    elif floodplain_height <= luminosity < hill_height:
+        p_noise = plain_upward_tolerance * perlin
 
     rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
-    p_noise = 12 * perlin
     res = (luminosity * rand_base) + p_noise
 
-    if (p_noise > 9 or p_noise < -9) and luminosity >= 18:
-        print(f"Mess: P noise: {p_noise}, l: {luminosity}, res: {res}")
-
-    # don't turn flatlands into water
-    if luminosity >= config.find_luminosity_by_name("wetland") > res:
-        res = config.find_luminosity_by_name("wetland")
-    # neither turn flatlands into high hills
-    elif luminosity < config.find_luminosity_by_name("hill") < res:
-        res = config.find_luminosity_by_name("hill") + 1
-    # neither turn hills into flatlands
-    elif luminosity >= config.find_luminosity_by_name("hill") > res:
-        res = config.find_luminosity_by_name("hill") - 1
-    # neither turn hills into mountains
-    elif luminosity < config.find_luminosity_by_name("mountain") < res:
-        res = config.find_luminosity_by_name("mountain") + 1
-    # neither turn mountains into hills
-    elif luminosity >= config.find_luminosity_by_name("mountain") > res:
-        res = config.find_luminosity_by_name("mountain") - 1
-    # neither turn high mountains into Mars volcanoes
-    elif res > config.find_luminosity_by_name("impassable mountain"):
-        res = config.find_luminosity_by_name("impassable mountain") + 1
+    if luminosity >= impassable_mountain_height:
+        # don't turn high mountains into Mars volcanoes
+        if res > impassable_mountain_height:
+            return impassable_mountain_height
+        # don't turn high mountains too low
+        elif res < impassable_mountain_height - mountain_downward_tolerance:
+            return impassable_mountain_height - mountain_downward_tolerance
+    elif luminosity >= mountain_height:
+        # don't turn regular mountains into Mt. Everst
+        if res > mountain_height + mountain_upward_tolerance:
+            return mountain_height + mountain_upward_tolerance
+        # don't turn high mountains too low
+        elif res < mountain_height - mountain_downward_tolerance:
+            return mountain_height - mountain_downward_tolerance
+    elif luminosity >= hill_height:
+        # don't turn regular mountains into Mt. Everest
+        if res > hill_height + hill_upward_tolerance:
+            return hill_height + hill_upward_tolerance
+        # don't turn high mountains too low
+        elif res < hill_height - hill_downward_tolerance:
+            return hill_height - hill_downward_tolerance
+    elif luminosity < hill_height:
+        # don't turn lowland into water
+        if res < floodplain_height:
+            return floodplain_height
+        # don't turn lowland into hills
+        elif res > plain_height + plain_upward_tolerance:
+            return plain_height + plain_upward_tolerance
 
     return int(res)
 

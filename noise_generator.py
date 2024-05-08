@@ -9,7 +9,9 @@ from perlin_numpy import generate_perlin_noise_2d
 def generate_perlin_noise(width, height, seed, save_to_file):
     print(f"Generating perlin noise map with seed {seed}")
     numpy.random.seed(seed)
-    gcd = int(math.gcd(width, height))
+
+    gcd = math.gcd(width, height)
+    print(f"GCD is {gcd}")
     noise = generate_perlin_noise_2d((height, width), (gcd, gcd))
 
     if save_to_file:
