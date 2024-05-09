@@ -7,7 +7,6 @@ import numpy as np
 from PIL import Image
 
 import config
-import noise_generator as ng
 import progress_bar as pb
 
 
@@ -98,9 +97,7 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise):
         pb.print_progress_bar(i, iteration_length, prefix='Replacing pixel colors:', suffix='Complete', length=50)
         pixel_no_alpha = tuple(pixel[:3])
 
-        x = int(i / width)
-        y = int(i % width)
-        perlin_noise_at_index = convoluted_perlin_noise[x, y]
+        perlin_noise_at_index = convoluted_perlin_noise[i]
 
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
@@ -108,9 +105,9 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise):
                 avg_l = mix_in_noise(avg_l, perlin_noise_at_index)
                 replaced_colors.append(cast_to_16_bit(avg_l))
             elif config.find_luminosity_by_rgb(pixel_no_alpha):
-                l = config.find_luminosity_by_rgb(pixel_no_alpha)
-                l = mix_in_noise(l, perlin_noise_at_index)
-                replaced_colors.append(cast_to_16_bit(l))
+                lum = config.find_luminosity_by_rgb(pixel_no_alpha)
+                lum = mix_in_noise(lum, perlin_noise_at_index)
+                replaced_colors.append(cast_to_16_bit(lum))
             else:
                 replaced_colors.append(cast_to_16_bit(pixel[0]))
         else:
@@ -151,28 +148,21 @@ def compile_image(pixel_colors, width, height, output_file_path):
 def resolve_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("src", help="The path of the source file")
-    parser.add_argument("-n", "--num_of_perlin", required=False, default=1,
-                        help="How many Perlin noise maps the app should generate")
-    parser.add_argument("-p", "--save_perlin_noise_file",
-                        required=False, default=False,
-                        help="This flag indicates whether the app should save the generated Perlin noise map as a file")
     args = vars(parser.parse_args())
 
     src = args["src"]
-    num_of_perlin_noises = int(args["num_of_perlin"])
-    save_perlin_noise_file = args["save_perlin_noise_file"]
-    return src, num_of_perlin_noises, save_perlin_noise_file
+    return src
 
 
 if __name__ == "__main__":
-    input_image_path, num_of_perlin_noises, save_perlin_noise_file = resolve_args()
+    input_image_path = resolve_args()
     output_file_path = Path("./output").resolve() / f"heightmap.png"
     if not output_file_path.parent.exists():
         output_file_path.parent.mkdir(parents=True)
 
     pixel_colors, width, height = get_pixel_colors(input_image_path)
-    print("Generating noise maps")
-    pn_arr = ng.generate_perlin_noises(width, height, num_of_perlin_noises, save_perlin_noise_file)
+    print("Reading noise map")
+    perlin_noise = np.fromfile(f"./output/perlin_noise_{width}_{height}.noise", dtype=float)
 
-    colors_replaced = replace_color(pixel_colors, width, pn_arr)
+    colors_replaced = replace_color(pixel_colors, width, perlin_noise)
     compile_image(colors_replaced, width, height, output_file_path)
