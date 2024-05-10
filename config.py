@@ -1,7 +1,9 @@
 from terrain import Terrain
 
+plain_terrain = Terrain("plain", (204, 163, 102), 20)
+
 all_terrains = [
-    Terrain("plain", (204, 163, 102), 20),
+    plain_terrain,
     Terrain("farmland", (255, 0, 0), 20),
     Terrain("hill", (90, 50, 12), 40),
     Terrain("mountain", (100, 100, 100), 80),

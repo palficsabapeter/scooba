@@ -93,8 +93,9 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise):
 
     iteration_length = len(pixel_colors)
 
+    print(f"Replacing pixel colors with luminosity")
     for i, pixel in enumerate(pixel_colors):
-        pb.print_progress_bar(i, iteration_length, prefix='Replacing pixel colors:', suffix='Complete', length=50)
+        pb.print_progress_bar(i, iteration_length, length=25)
         pixel_no_alpha = tuple(pixel[:3])
 
         perlin_noise_at_index = convoluted_perlin_noise[i]
