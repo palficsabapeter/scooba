@@ -9,15 +9,22 @@ import config as c
 import progress_bar as pb
 
 
-def is_plain_pixel(rgb: []):
-    plain_rgb = c.plain_terrain.rgb
-    return plain_rgb[0] == rgb[0] and plain_rgb[1] == rgb[1] and plain_rgb[2] == rgb[2]
+def is_mountain_pixel(rgb: []):
+    mountain_rgb = c.mountain_terrain.rgb
+    desert_mountain_rgb = c.desert_mountain_terrain.rgb
+    impassable_mountain_rgb = c.impassable_mountain_terrain.rgb
+
+    is_mountain = mountain_rgb[0] == rgb[0] and mountain_rgb[1] == rgb[1] and mountain_rgb[2] == rgb[2]
+    is_desert_mountain = desert_mountain_rgb[0] == rgb[0] and desert_mountain_rgb[1] == rgb[1] and desert_mountain_rgb[2] == rgb[2]
+    is_impassable_mountain = impassable_mountain_rgb[0] == rgb[0] and impassable_mountain_rgb[1] == rgb[1] and impassable_mountain_rgb[2] == rgb[2]
+
+    return is_mountain or is_desert_mountain or is_impassable_mountain
 
 
 def check_for_up_way(i: int, j: int, pixels: [[]], height):
     if i + 1 < height:
         next_pixel = pixels[i + 1, j]
-        if is_plain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -25,7 +32,7 @@ def check_for_up_way(i: int, j: int, pixels: [[]], height):
 def check_for_down_way(i: int, j: int, pixels: [[]]):
     if i - 1 >= 0:
         next_pixel = pixels[i - 1, j]
-        if is_plain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -33,7 +40,7 @@ def check_for_down_way(i: int, j: int, pixels: [[]]):
 def check_for_left_way(i: int, j: int, pixels: [[]]):
     if j - 1 >= 0:
         next_pixel = pixels[i, j - 1]
-        if is_plain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -41,7 +48,7 @@ def check_for_left_way(i: int, j: int, pixels: [[]]):
 def check_for_right_way(i: int, j: int, pixels: [[]], width):
     if j + 1 < width:
         next_pixel = pixels[i, j + 1]
-        if is_plain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -120,7 +127,7 @@ def dfs(pixels: [[]], i, j, width, height, current_progress, full_progress):
 
 def discover_by_dfs(pixels: [[]], i, j, width, height, cell_ctr, current_progress, full_progress):
     cell = []
-    if is_plain_pixel(pixels[i, j, :3]):
+    if is_mountain_pixel(pixels[i, j, :3]):
         cell = dfs(pixels, i, j, width, height, current_progress, full_progress)
         cell_ctr += 1
 
@@ -130,7 +137,7 @@ def discover_by_dfs(pixels: [[]], i, j, width, height, cell_ctr, current_progres
 def skip_while_not_plain_or_in_cells(pixel_row: [], i, j, width, height, cells: [[]]):
     current = pixel_row[j]
     next = pixel_row[j + 1]
-    while j + 1 < width and (pixel_row[j, 3] == 1 or (not is_plain_pixel(current[:3]))):
+    while j + 1 < width and (pixel_row[j, 3] == 1 or (not is_mountain_pixel(current[:3]))):
         pb.print_progress_bar(i * width, width * height, length=20)
         current = next
         j += 1
@@ -172,7 +179,7 @@ def load_image_into_array(image_path):
         for j, pixel in enumerate(row):
             pb.print_progress_bar(i * width, width * height, length=20)
             rgb_no_alpha = arr[i, j, :3]
-            if not is_plain_pixel(rgb_no_alpha):
+            if not is_mountain_pixel(rgb_no_alpha):
                 arr[i, j, 3] = 1
             else:
                 arr[i, j, 3] = 0
