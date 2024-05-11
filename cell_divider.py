@@ -15,8 +15,10 @@ def is_mountain_pixel(rgb: []):
     impassable_mountain_rgb = c.impassable_mountain_terrain.rgb
 
     is_mountain = mountain_rgb[0] == rgb[0] and mountain_rgb[1] == rgb[1] and mountain_rgb[2] == rgb[2]
-    is_desert_mountain = desert_mountain_rgb[0] == rgb[0] and desert_mountain_rgb[1] == rgb[1] and desert_mountain_rgb[2] == rgb[2]
-    is_impassable_mountain = impassable_mountain_rgb[0] == rgb[0] and impassable_mountain_rgb[1] == rgb[1] and impassable_mountain_rgb[2] == rgb[2]
+    is_desert_mountain = desert_mountain_rgb[0] == rgb[0] and desert_mountain_rgb[1] == rgb[1] and desert_mountain_rgb[
+        2] == rgb[2]
+    is_impassable_mountain = impassable_mountain_rgb[0] == rgb[0] and impassable_mountain_rgb[1] == rgb[1] and \
+                             impassable_mountain_rgb[2] == rgb[2]
 
     return is_mountain or is_desert_mountain or is_impassable_mountain
 
@@ -158,7 +160,8 @@ def cellularize_image_array(pixels: [[]], full_progress):
         for _, pixel in enumerate(pixel_row):
             while j + 1 < width is not None:
                 j = skip_while_not_plain_or_in_cells(pixel_row, i, j, width, height, cells)
-                j, cell, cell_ctr = discover_by_dfs(pixels, i, j, width, height, cell_ctr, current_progress, full_progress)
+                j, cell, cell_ctr = discover_by_dfs(pixels, i, j, width, height, cell_ctr, current_progress,
+                                                    full_progress)
 
                 if len(cell) > 0:
                     cells.append(cell)
@@ -220,10 +223,10 @@ def save_cells(cells: [], output_folder):
 
 
 def save_noise_map(noise_array, output_folder, axis):
-    filename = f"cellularized{axis}.png"
+    filename = f"cell{axis}.png"
     output_path = Path(output_folder).resolve() / filename
     plt.imsave(output_path, noise_array, cmap="gray")
-    print(f"Successfully persisted cell divided noise file at {output_path}")
+    print(f"Successfully persisted cell noise file at {output_path}")
 
 
 def resolve_args():
@@ -235,9 +238,15 @@ def resolve_args():
     return src
 
 
+startup_msg = """
+█▀▀ █▀▀ █░░ █░░   █▀▄ █ █░█ █ █▀▄ █▀▀ █▀█
+█▄▄ ██▄ █▄▄ █▄▄   █▄▀ █ ▀▄▀ █ █▄▀ ██▄ █▀▄"""
+
+output_folder = Path("./output/cell_divider").resolve()
+
 if __name__ == "__main__":
+    print(startup_msg)
     src = resolve_args()
-    output_folder = Path("./output/cell_noise").resolve()
     if not output_folder.exists():
         output_folder.mkdir(parents=True)
 

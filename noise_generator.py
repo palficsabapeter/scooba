@@ -1,13 +1,12 @@
 import argparse
-from pathlib import Path
-
 import time
+from pathlib import Path
 
 import numpy
 import numpy as np
+from PIL import Image
 from matplotlib import pyplot as plt
 from perlin_numpy import generate_perlin_noise_2d
-from PIL import Image
 
 
 def save_noise_map(noise_array, width, height, seed, res1, res2, is_conv=False):
@@ -92,7 +91,12 @@ def resolve_args():
     return working_file_path, num_of_perlin_noises, save_images
 
 
+startup_msg = """
+█▄░█ █▀█ █ █▀ █▀▀   █▀▀ █▀▀ █▄░█ █▀▀ █▀█ ▄▀█ ▀█▀ █▀█ █▀█
+█░▀█ █▄█ █ ▄█ ██▄   █▄█ ██▄ █░▀█ ██▄ █▀▄ █▀█ ░█░ █▄█ █▀▄"""
+
 if __name__ == "__main__":
+    print(startup_msg)
     working_file_path, num_of_noise_maps, save_images = resolve_args()
 
     image = Image.open(working_file_path)
