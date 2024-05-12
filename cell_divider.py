@@ -9,24 +9,18 @@ import config as c
 import progress_bar as pb
 
 
-def is_mountain_pixel(rgb: []):
-    mountain_rgb = c.mountain_terrain.rgb
-    desert_mountain_rgb = c.desert_mountain_terrain.rgb
-    impassable_mountain_rgb = c.impassable_mountain_terrain.rgb
-
-    is_mountain = mountain_rgb[0] == rgb[0] and mountain_rgb[1] == rgb[1] and mountain_rgb[2] == rgb[2]
-    is_desert_mountain = desert_mountain_rgb[0] == rgb[0] and desert_mountain_rgb[1] == rgb[1] and desert_mountain_rgb[
-        2] == rgb[2]
-    is_impassable_mountain = impassable_mountain_rgb[0] == rgb[0] and impassable_mountain_rgb[1] == rgb[1] and \
-                             impassable_mountain_rgb[2] == rgb[2]
-
-    return is_mountain or is_desert_mountain or is_impassable_mountain
+def is_processable_pixel(rgb: []):
+    for i, land_terrain in enumerate(c.land_terrains):
+        r, g, b = land_terrain.rgb
+        if r == rgb[0] and g == rgb[1] and b == rgb[2]:
+            return True
+    return False
 
 
 def check_for_up_way(i: int, j: int, pixels: [[]], height):
     if i + 1 < height:
         next_pixel = pixels[i + 1, j]
-        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_processable_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -34,7 +28,7 @@ def check_for_up_way(i: int, j: int, pixels: [[]], height):
 def check_for_down_way(i: int, j: int, pixels: [[]]):
     if i - 1 >= 0:
         next_pixel = pixels[i - 1, j]
-        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_processable_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -42,7 +36,7 @@ def check_for_down_way(i: int, j: int, pixels: [[]]):
 def check_for_left_way(i: int, j: int, pixels: [[]]):
     if j - 1 >= 0:
         next_pixel = pixels[i, j - 1]
-        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_processable_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -50,7 +44,7 @@ def check_for_left_way(i: int, j: int, pixels: [[]]):
 def check_for_right_way(i: int, j: int, pixels: [[]], width):
     if j + 1 < width:
         next_pixel = pixels[i, j + 1]
-        if is_mountain_pixel(next_pixel[:3]) and next_pixel[3] != 1:
+        if is_processable_pixel(next_pixel[:3]) and next_pixel[3] != 1:
             return True
     return False
 
@@ -129,17 +123,17 @@ def dfs(pixels: [[]], i, j, width, height, current_progress, full_progress):
 
 def discover_by_dfs(pixels: [[]], i, j, width, height, cell_ctr, current_progress, full_progress):
     cell = []
-    if is_mountain_pixel(pixels[i, j, :3]):
+    if is_processable_pixel(pixels[i, j, :3]):
         cell = dfs(pixels, i, j, width, height, current_progress, full_progress)
         cell_ctr += 1
 
     return j, cell, cell_ctr
 
 
-def skip_while_not_plain_or_in_cells(pixel_row: [], i, j, width, height, cells: [[]]):
+def skip_while_not_processable(pixel_row: [], i, j, width, height):
     current = pixel_row[j]
     next = pixel_row[j + 1]
-    while j + 1 < width and (pixel_row[j, 3] == 1 or (not is_mountain_pixel(current[:3]))):
+    while j + 1 < width and (pixel_row[j, 3] == 1 or (not is_processable_pixel(current[:3]))):
         pb.print_progress_bar(i * width, width * height, length=20)
         current = next
         j += 1
@@ -159,7 +153,7 @@ def cellularize_image_array(pixels: [[]], full_progress):
         j = 0
         for _, pixel in enumerate(pixel_row):
             while j + 1 < width is not None:
-                j = skip_while_not_plain_or_in_cells(pixel_row, i, j, width, height, cells)
+                j = skip_while_not_processable(pixel_row, i, j, width, height)
                 j, cell, cell_ctr = discover_by_dfs(pixels, i, j, width, height, cell_ctr, current_progress,
                                                     full_progress)
 
@@ -182,7 +176,7 @@ def load_image_into_array(image_path):
         for j, pixel in enumerate(row):
             pb.print_progress_bar(i * width, width * height, length=20)
             rgb_no_alpha = arr[i, j, :3]
-            if not is_mountain_pixel(rgb_no_alpha):
+            if not is_processable_pixel(rgb_no_alpha):
                 arr[i, j, 3] = 1
             else:
                 arr[i, j, 3] = 0
@@ -219,14 +213,14 @@ def save_cells(cells: [], output_folder):
                 arr[y, x] = 1
 
             arr = np.transpose(arr)
-            save_noise_map(arr, output_folder, f"_{i}_{min_y}x{min_x}")
+            save_cell_map(arr, output_folder, f"_{i}_{min_y}x{min_x}")
 
 
-def save_noise_map(noise_array, output_folder, axis):
+def save_cell_map(cell_array, output_folder, axis):
     filename = f"cell{axis}.png"
     output_path = Path(output_folder).resolve() / filename
-    plt.imsave(output_path, noise_array, cmap="gray")
-    print(f"Successfully persisted cell noise file at {output_path}")
+    plt.imsave(output_path, cell_array, cmap="gray")
+    print(f"Successfully persisted cell file at {output_path}")
 
 
 def resolve_args():
@@ -244,12 +238,17 @@ startup_msg = """
 
 output_folder = Path("./output/cell_divider").resolve()
 
-if __name__ == "__main__":
+
+def run(src):
     print(startup_msg)
-    src = resolve_args()
     if not output_folder.exists():
         output_folder.mkdir(parents=True)
 
     arr, full_progress = load_image_into_array(src)
     cells = cellularize_image_array(arr, full_progress)
     save_cells(cells, output_folder)
+
+
+if __name__ == "__main__":
+    src = resolve_args()
+    run(src)

@@ -1,17 +1,24 @@
 from terrain import Terrain
 
-plain_terrain = Terrain("plain", (204, 163, 102), 20)
-mountain_terrain = Terrain("mountain", (100, 100, 100), 80)
-desert_mountain_terrain = Terrain("desert mountain", (23, 19, 38), 80)
-impassable_mountain_terrain = Terrain("impassable mountain", (36, 36, 36), 110)
-
-all_terrains = [
-    plain_terrain,
+land_terrains = [
+    Terrain("plain", (204, 163, 102), 20),
     Terrain("farmland", (255, 0, 0), 20),
     Terrain("hill", (90, 50, 12), 40),
-    mountain_terrain,
-    desert_mountain_terrain,
-    impassable_mountain_terrain,
+    Terrain("mountain", (100, 100, 100), 80),
+    Terrain("desert mountain", (23, 19, 38), 80),
+    Terrain("impassable mountain", (36, 36, 36), 110),
+    Terrain("desert", (255, 229, 0), 20),
+    Terrain("oasis", (155, 143, 204), 18),
+    Terrain("jungle", (10, 60, 35), 21),
+    Terrain("forest", (71, 178, 45), 21),
+    Terrain("taiga", (46, 153, 89), 21),
+    Terrain("wetland", (76, 153, 153), 18),
+    Terrain("steppe", (200, 100, 25), 20),
+    Terrain("floodplain", (55, 31, 153), 18),
+    Terrain("dryland", (220, 45, 120), 20),
+]
+
+all_terrains = land_terrains + [
     Terrain("desert", (255, 229, 0), 20),
     Terrain("oasis", (155, 143, 204), 18),
     Terrain("jungle", (10, 60, 35), 21),

@@ -16,13 +16,13 @@ def save_noise_map(noise_array, width, height, seed, res1, res2, is_conv=False):
     else:
         filename += ".png"
 
-    output_path = Path("./output").resolve() / filename
+    output_path = output_folder / filename
     plt.imsave(output_path, noise_array, cmap="gray")
     print(f"Successfully persisted Perlin noise file at {output_path}")
 
 
 def save_noise_map_data(noise_array: numpy.ndarray, width, height):
-    noise_array.tofile(f"./output/perlin_noise_{width}_{height}.noise")
+    noise_array.tofile(output_folder / f"perlin_noise_{width}_{height}.noise")
 
 
 def convolve_noise_maps(noise_map_1, noise_map_2, ratio1=1.75, ratio2=0.25):
@@ -39,25 +39,19 @@ def convolve_noise_maps(noise_map_1, noise_map_2, ratio1=1.75, ratio2=0.25):
     return arr
 
 
-def generate_perlin_noises(width, height, num_of_noise_maps, save_images):
-    pn_arr = []
-
-    for i in range(num_of_noise_maps):
-        seed = np.uint32(round(time.time())) + i
-        pn1 = generate_perlin_noise(width, height, seed, 25, save_images)
-        pn2 = generate_perlin_noise(width, height, seed, 50, save_images)
-        convoluted = convolve_noise_maps(pn1, pn2)
-        if save_images:
-            save_noise_map(convoluted, width, height, seed, 25, 50, True)
-        pn_arr.append(convoluted)
+def generate_perlin_noises(width, height, save_images):
+    seed = np.uint32(round(time.time()))
+    pn1 = generate_perlin_noise(width, height, seed, 20, save_images)
+    pn2 = generate_perlin_noise(width, height, seed, 25, save_images)
+    pn3 = generate_perlin_noise(width, height, seed, 50, save_images)
+    pn4 = generate_perlin_noise(width, height, seed, 100, save_images)
 
     print("Convoluting all noise maps")
-    conv_all = pn_arr[0]
-    for i, noise_map in enumerate(pn_arr[1:]):
-        conv_all = convolve_noise_maps(conv_all, noise_map, 1, 1)
-
+    convoluted1 = convolve_noise_maps(pn1, pn2)
+    convoluted2 = convolve_noise_maps(convoluted1, pn3)
+    conv_all = convolve_noise_maps(convoluted2, pn4)
     if save_images:
-        save_noise_map(conv_all, width, height, "all", 25, 50, True)
+        save_noise_map(conv_all, width, height, "all", 25, 100, True)
 
     save_noise_map_data(conv_all, width, height)
     return conv_all
@@ -78,33 +72,35 @@ def generate_perlin_noise(width, height, seed, res, save_images):
 def resolve_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("working_file_path", help="The path of the working file")
-    parser.add_argument("-n", "--num_of_noise_maps", required=False, default=1,
-                        help="How many Perlin noise map pairs the app should generate")
     parser.add_argument("-s", "--save_images",
                         required=False, default=False,
                         help="This flag indicates whether the app should save the generated Perlin noise map as a file")
     args = vars(parser.parse_args())
 
     working_file_path = args["working_file_path"]
-    num_of_perlin_noises = int(args["num_of_noise_maps"])
     save_images = bool(args["save_images"])
-    return working_file_path, num_of_perlin_noises, save_images
+    return working_file_path, save_images
 
 
 startup_msg = """
 █▄░█ █▀█ █ █▀ █▀▀   █▀▀ █▀▀ █▄░█ █▀▀ █▀█ ▄▀█ ▀█▀ █▀█ █▀█
 █░▀█ █▄█ █ ▄█ ██▄   █▄█ ██▄ █░▀█ ██▄ █▀▄ █▀█ ░█░ █▄█ █▀▄"""
 
-if __name__ == "__main__":
+output_folder = Path("./output/perlin_noise").resolve()
+
+def run(working_file_path, save_images):
     print(startup_msg)
-    working_file_path, num_of_noise_maps, save_images = resolve_args()
 
     image = Image.open(working_file_path)
     width, height = image.size
 
-    output_file_path = Path("./output").resolve()
-    if not output_file_path.exists():
-        output_file_path.mkdir(parents=True)
+    if not output_folder.exists():
+        output_folder.mkdir(parents=True)
 
     print("Generating noise maps")
-    pn_arr = generate_perlin_noises(width, height, num_of_noise_maps, save_images)
+    generate_perlin_noises(width, height, save_images)
+
+
+if __name__ == "__main__":
+    working_file_path, save_images = resolve_args()
+    run(working_file_path, save_images)
