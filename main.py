@@ -40,7 +40,6 @@ def mix_in_noise(luminosity, input_noise, mode):
     hill_height = config.find_luminosity_by_name("hill")
     plain_height = config.find_luminosity_by_name("plain")
 
-
     impassable_mountain_downward_tolerance = (impassable_mountain_height - hill_height) / 2
     mountain_upward_tolerance = impassable_mountain_height - mountain_height
     mountain_downward_tolerance = mountain_height - hill_height
@@ -52,34 +51,39 @@ def mix_in_noise(luminosity, input_noise, mode):
     res = 0
     rand_base = 1 + 0.0625 - (random.randint(0, 625) / 10000)
     if mode == "dla":
-        dla_noise = input_noise + 0.5
+        normalized_dla = (input_noise - 0.5) * 2
+        if normalized_dla > 1:
+            print("above")
+        elif normalized_dla < -1:
+            print("below")
         if impassable_mountain_height <= luminosity:
-            minimum_impassable_mountain_height = mountain_height - impassable_mountain_downward_tolerance
-            res = impassable_mountain_height * dla_noise
-            if res < minimum_impassable_mountain_height:
-                res = minimum_impassable_mountain_height
-            elif res > impassable_mountain_height + mountain_upward_tolerance:
-                res = impassable_mountain_height + mountain_upward_tolerance
+            upheight = impassable_mountain_height / 4
+            downheight = impassable_mountain_height - hill_height
+            if normalized_dla > 0:
+                res = upheight * normalized_dla
+            else:
+                res = downheight * normalized_dla
+            res += impassable_mountain_height
         elif mountain_height <= luminosity:
-            minimum_mountain_height = mountain_height - mountain_downward_tolerance
-            res = mountain_height * dla_noise
-            if res < minimum_mountain_height:
-                res = minimum_mountain_height
-            elif res > mountain_height + mountain_upward_tolerance:
-                res = mountain_height + mountain_upward_tolerance
+            upheight = impassable_mountain_height - mountain_height
+            downheight = mountain_height - plain_height
+            if normalized_dla > 0:
+                res = upheight * normalized_dla
+            else:
+                res = downheight * normalized_dla
+            res += mountain_height
         elif hill_height <= luminosity < mountain_height:
-            res = hill_height * dla_noise
-            if res < hill_height - hill_downward_tolerance:
-                res = hill_height - hill_downward_tolerance
-            elif res > hill_height + hill_upward_tolerance:
-                res = hill_height + hill_upward_tolerance
+            upheight = mountain_height - hill_height
+            downheight = hill_height - floodplain_height
+            if normalized_dla > 0:
+                res = upheight * normalized_dla
+            else:
+                res = downheight * normalized_dla
+            res += hill_height
         elif floodplain_height <= luminosity < hill_height:
-            normalized_dla_height = plain_height * dla_noise
-            res = plain_height + normalized_dla_height
-            if res < floodplain_height:
-                res = floodplain_height
-            elif res > plain_height + plain_upward_tolerance:
-                res = plain_height + plain_upward_tolerance
+            upheight = (hill_height - floodplain_height) / 2
+            plain_center_height = floodplain_height + upheight
+            res = plain_center_height + (upheight * normalized_dla)
     elif mode == "perlin":
         if mountain_height <= luminosity:
             noise = mountain_upward_tolerance * input_noise
@@ -134,7 +138,7 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise, dla_arr):
         pixel_no_alpha = tuple(pixel[:3])
 
         perlin_noise_at_index = convoluted_perlin_noise[i]
-        dla_at_index = dla_arr[i] + 0.25
+        dla_at_index = dla_arr[i]
 
         if isinstance(pixel, tuple) and len(pixel) == 4:
             if pixel[0] == pixel[1] == pixel[2] == 0:
@@ -142,9 +146,6 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise, dla_arr):
                     replaced_colors.append(cast_to_16_bit(pixel[0]))
                 else:
                     replaced_colors.append(cast_to_16_bit(5))
-                #lum = get_average_color(pixel_colors, i, width)
-                #lum = mix_in_noise(lum, perlin_noise_at_index, "perlin")
-                #replaced_colors.append(cast_to_16_bit(lum))
             elif config.find_luminosity_by_rgb(pixel_no_alpha):
                 lum = config.find_luminosity_by_rgb(pixel_no_alpha)
                 if dla_at_index > 0:
@@ -159,8 +160,6 @@ def replace_color(pixel_colors, width, convoluted_perlin_noise, dla_arr):
 
     print("Averaging luminosities")
     for i, luminosity in enumerate(replaced_colors):
-        perlin_noise_at_index = convoluted_perlin_noise[i]
-        dla_at_index = dla_arr[i]
         if luminosity == 0:
             avg_l = get_average_luminosity(replaced_colors, i, width)
             replaced_colors[i] = avg_l
@@ -235,12 +234,12 @@ if __name__ == "__main__":
 
     pixel_colors, width, height = get_pixel_colors(input_image_path)
     print("Running noise generator")
-    noise_generator.run(input_image_path, False)
+    #noise_generator.run(input_image_path, False)
     print("Reading noise map")
     perlin_noise = np.fromfile(noise_generator.output_folder / f"perlin_noise_{width}_{height}.noise", dtype=float)
 
     print("Running cell divider")
-    cell_divider.run(input_image_path)
+    #cell_divider.run(input_image_path)
     print("Running DLA")
     diffusion_limited_aggregator.run(input_image_path, False)
 

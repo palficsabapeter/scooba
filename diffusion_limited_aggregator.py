@@ -79,6 +79,8 @@ def generate(height, width, seed_spawn_area):
     arr = np.full((height, width), 0.5, dtype=float)
     minimum_dist_of_seeds = 0
     area_of_spawn = math.sqrt(max_fillable_pixels)
+    if area_of_spawn == 0:
+        return []
     dist_y = (height / area_of_spawn) - 1
     dist_x = (width / area_of_spawn) - 1
     if dist_y < dist_x:
